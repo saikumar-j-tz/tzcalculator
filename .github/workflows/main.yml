@@ -10,38 +10,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Set up Flutter (latest stable that meets SDK requirements)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.8'
           channel: 'stable'
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
+      # 4. Accept Android licenses
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses
 
+      # 5. Build debug APK
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Install gdrive CLI
+      # 6. Install rclone (Google Drive supported)
+      - name: Install rclone
         run: |
-          sudo apt-get update
-          wget -O gdrive \
-            https://github.com/prasmussen/gdrive/releases/download/2.1.1/gdrive-linux-x64
-          chmod +x gdrive
-          sudo mv gdrive /usr/local/bin/gdrive
+          curl https://rclone.org/install.sh | sudo bash
 
-      - name: Upload APK to Google Drive
+      # 7. Configure rclone from secret
+      - name: Configure rclone
         env:
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
         run: |
-          echo "$GDRIVE_CREDENTIALS" > service-account.json
-          gdrive upload \
-            --service-account service-account.json \
-            --parent 1gHXMfzb-WD78udXwporCmaa_9yd6sklJ \
-            build/app/outputs/flutter-apk/app-debug.apk
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+
+      # 8. Upload APK to Google Drive folder
+      - name: Upload APK to Google Drive
+        run: |
+          rclone copy build/app/outputs/flutter-apk/app-debug.apk gdrive:FlutterAPKFolder
