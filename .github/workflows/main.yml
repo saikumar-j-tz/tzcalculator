@@ -2,7 +2,7 @@ name: Build & Upload Debug APK to Google Drive
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
